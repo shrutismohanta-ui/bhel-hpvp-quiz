@@ -1,0 +1,7 @@
+# BHEL-HPVP Quiz Portal .gitignore
+.idea/
+.vscode/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

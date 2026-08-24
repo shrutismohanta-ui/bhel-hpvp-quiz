@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Outer Blue Ring -->
+  <circle cx="60" cy="60" r="56" fill="#0B3B82" stroke="#FFC107" stroke-width="4"/>
+  
+  <!-- Inner White Disc -->
+  <circle cx="60" cy="60" r="44" fill="#FFFFFF"/>
+  
+  <!-- Blue Frame Bar Behind BHEL -->
+  <rect x="22" y="44" width="76" height="32" rx="4" fill="#0B3B82"/>
+  
+  <!-- Official Red BHEL Typography -->
+  <text x="60" y="68" font-family="'Arial Black', 'Impact', 'Inter', sans-serif" font-weight="900" font-size="22" fill="#E31E24" text-anchor="middle" letter-spacing="1">BHEL</text>
+
+  <!-- Top Hindi Text / Emblem Arc Motif -->
+  <path d="M 32 40 A 32 32 0 0 1 88 40" fill="none" stroke="#0B3B82" stroke-width="3"/>
+  <circle cx="60" cy="28" r="5" fill="#E31E24"/>
+</svg>
