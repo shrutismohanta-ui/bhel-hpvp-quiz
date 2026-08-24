@@ -80,7 +80,7 @@ require_once __DIR__ . '/includes/header.php';
 <div style="max-width: 460px; margin: 40px auto;">
     <div class="card" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
         <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 25px; text-align: left;">
-            <img src="images/bhel_logo.png" alt="BHEL Logo" style="height: 56px; width: auto; object-fit: contain;">
+            <img src="images/bhel_logo.png" alt="BHEL Logo" style="height: 54px; width: auto; object-fit: contain; border: 2px solid rgba(255, 255, 255, 0.8); border-radius: 8px; padding: 3px; background: rgba(255, 255, 255, 0.08);">
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 <h2 style="font-size: 22px; font-weight: 800; color: #FFF; line-height: 1.2; margin: 0;">BHEL - HPVP</h2>
                 <div style="font-size: 15px; font-weight: 700; color: var(--bhel-gold); line-height: 1.2; margin-top: 2px;">Quiz Portal</div>
