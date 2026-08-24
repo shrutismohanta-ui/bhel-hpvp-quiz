@@ -79,10 +79,12 @@ require_once __DIR__ . '/includes/header.php';
 
 <div style="max-width: 460px; margin: 40px auto;">
     <div class="card" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
-        <div style="text-align: center; margin-bottom: 25px;">
-            <img src="assets/images/bhel_logo.svg" alt="BHEL Logo" style="height: 60px; width: auto; margin-bottom: 12px;">
-            <h2 style="font-size: 22px; font-weight: 800; color: #FFF;">BHEL - HPVP</h2>
-            <div style="font-size: 15px; font-weight: 700; color: var(--bhel-gold); margin-top: 2px;">Quiz Portal</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 25px; text-align: left;">
+            <img src="assets/images/bhel_logo.svg" alt="BHEL Logo" style="height: 56px; width: auto;">
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                <h2 style="font-size: 22px; font-weight: 800; color: #FFF; line-height: 1.2; margin: 0;">BHEL - HPVP</h2>
+                <div style="font-size: 15px; font-weight: 700; color: var(--bhel-gold); line-height: 1.2; margin-top: 2px;">Quiz Portal</div>
+            </div>
         </div>
 
         <?php if ($error): ?>
