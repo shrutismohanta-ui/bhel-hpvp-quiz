@@ -106,13 +106,13 @@ require_once __DIR__ . '/includes/header.php';
             <input type="hidden" name="action" value="login">
 
             <div class="form-group">
-                <label><i class="fa-solid fa-id-badge" style="color: var(--bhel-blue-accent);"></i> Staff / Employee Number</label>
-                <input type="text" name="staff_no" class="form-control" placeholder="e.g. EMP1001 or ADMIN001" required uppercase autofocus>
+                <label><i class="fa-solid fa-id-badge" style="color: var(--bhel-blue-accent);"></i> Staff Number</label>
+                <input type="text" name="staff_no" class="form-control" placeholder="Staff Number" required uppercase autofocus>
             </div>
 
             <div class="form-group">
                 <label><i class="fa-solid fa-lock" style="color: var(--bhel-gold);"></i> Password</label>
-                <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                <input type="password" name="password" class="form-control" placeholder="Employee Corner Password" required>
             </div>
 
             <!-- SECURITY CAPTCHA WIDGET -->
