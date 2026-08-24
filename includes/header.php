@@ -29,7 +29,7 @@ $pageTitle = $pageTitle ?? 'BHEL-HPVP Vizag Quiz Portal';
 <body>
     <nav class="bhel-navbar">
         <a href="<?= $baseUrl ?>dashboard.php" class="brand-logo" title="BHEL HPVP Vizag Portal" style="display: flex; align-items: center; gap: 14px; text-decoration: none;">
-            <img src="<?= $baseUrl ?>assets/images/bhel_logo.svg" alt="BHEL Logo" style="height: 48px; width: auto;">
+            <img src="<?= $baseUrl ?>images/bhel_logo.png" alt="BHEL Logo" style="height: 48px; width: auto; object-fit: contain;">
             <div class="brand-text" style="display: flex; flex-direction: column; justify-content: center;">
                 <h1 style="font-size: 20px; font-weight: 800; color: #FFF; line-height: 1.2; letter-spacing: 0.5px; margin: 0;">BHEL - HPVP</h1>
                 <span style="font-size: 14px; font-weight: 700; color: var(--bhel-gold); line-height: 1.2; letter-spacing: 0.5px; margin-top: 1px;">Quiz Portal</span>

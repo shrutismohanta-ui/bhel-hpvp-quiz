@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <body>
     <div class="setup-card">
         <div class="header">
-            <img src="assets/images/bhel_logo.svg" alt="BHEL HPVP Vizag Logo" style="height: 54px; width: auto; margin-bottom: 12px;">
+            <img src="images/bhel_logo.png" alt="BHEL HPVP Vizag Logo" style="height: 54px; width: auto; margin-bottom: 12px; object-fit: contain;">
             <h1>BHEL-HPVP Vizag Quiz Database Setup</h1>
             <p class="subtitle">1-Click Database Creation & Schema Installer</p>
         </div>
