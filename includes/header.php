@@ -37,11 +37,28 @@ $pageTitle = $pageTitle ?? 'BHEL-HPVP Vizag Quiz Portal';
         </a>
 
         <?php if (is_logged_in()): ?>
+            <?php 
+                $userCat = strtolower($_SESSION['employee_category'] ?? 'workman');
+                // Category styling badges
+                if ($userCat === 'executive') {
+                    $catBadgeStyle = 'background: rgba(255, 193, 7, 0.2); color: #FDE047; border: 1px solid rgba(255, 193, 7, 0.5);';
+                    $catIcon = 'fa-user-tie';
+                } elseif ($userCat === 'supervisor') {
+                    $catBadgeStyle = 'background: rgba(139, 92, 246, 0.25); color: #DDD6FE; border: 1px solid rgba(139, 92, 246, 0.5);';
+                    $catIcon = 'fa-user-gear';
+                } else {
+                    $catBadgeStyle = 'background: rgba(16, 185, 129, 0.2); color: #6EE7B7; border: 1px solid rgba(16, 185, 129, 0.4);';
+                    $catIcon = 'fa-user-check';
+                }
+            ?>
             <div class="nav-user-menu">
                 <div class="user-info-pill">
-                    <i class="fa-solid fa-user-gear"></i>
+                    <i class="fa-solid fa-circle-user" style="color: var(--bhel-blue-accent); font-size: 16px;"></i>
                     <span><?= sanitize($_SESSION['full_name']) ?> (<?= sanitize($_SESSION['staff_no']) ?>)</span>
-                    <span class="role-badge"><?= sanitize($_SESSION['user_role']) ?></span>
+                    <span class="category-badge" style="padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; <?= $catBadgeStyle ?>" title="Employee Category">
+                        <i class="fa-solid <?= $catIcon ?>"></i> <?= sanitize(ucfirst($userCat)) ?>
+                    </span>
+                    <span class="role-badge" title="Access Role: <?= sanitize($_SESSION['user_role']) ?>"><?= sanitize($_SESSION['user_role']) ?></span>
                 </div>
 
                 <?php if (is_admin()): ?>

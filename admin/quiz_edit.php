@@ -19,6 +19,8 @@ $quiz = [
     'description_en' => '',
     'description_hi' => '',
     'description_te' => '',
+    'languages' => 'en',
+    'target_categories' => 'executive,supervisor,workman',
     'start_time' => date('Y-m-d\TH:i'),
     'end_time' => date('Y-m-d\TH:i', strtotime('+7 days')),
     'duration_minutes' => 15,
@@ -34,6 +36,8 @@ if ($quizId > 0) {
     $existing = $stmt->fetch();
     if ($existing) {
         $quiz = $existing;
+        $quiz['languages'] = !empty($existing['languages']) ? $existing['languages'] : 'en';
+        $quiz['target_categories'] = !empty($existing['target_categories']) ? $existing['target_categories'] : 'executive,supervisor,workman';
         // Format datetimes for datetime-local picker
         $quiz['start_time'] = date('Y-m-d\TH:i', strtotime($existing['start_time']));
         $quiz['end_time'] = date('Y-m-d\TH:i', strtotime($existing['end_time']));
@@ -51,6 +55,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descEn  = trim($_POST['description_en'] ?? '');
     $descHi  = trim($_POST['description_hi'] ?? '');
     $descTe  = trim($_POST['description_te'] ?? '');
+    
+    $langsArr = $_POST['languages'] ?? ['en'];
+    if (empty($langsArr)) $langsArr = ['en'];
+    $languagesStr = implode(',', $langsArr);
+
+    $catsArr = $_POST['target_categories'] ?? ['executive', 'supervisor', 'workman'];
+    if (empty($catsArr)) $catsArr = ['executive', 'supervisor', 'workman'];
+    $targetCategoriesStr = implode(',', $catsArr);
+
     $start   = $_POST['start_time'] ?? '';
     $end     = $_POST['end_time'] ?? '';
     $duration = (int)($_POST['duration_minutes'] ?? 15);
@@ -72,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UPDATE " . tbl('quizzes') . " SET
                     title_en = ?, title_hi = ?, title_te = ?,
                     description_en = ?, description_hi = ?, description_te = ?,
+                    languages = ?, target_categories = ?,
                     start_time = ?, end_time = ?, duration_minutes = ?,
                     marks_per_question = ?, negative_marks = ?, pass_percentage = ?,
                     is_published = ?
@@ -80,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upStmt->execute([
                 $titleEn, $titleHi, $titleTe,
                 $descEn, $descHi, $descTe,
+                $languagesStr, $targetCategoriesStr,
                 $startFormatted, $endFormatted, $duration,
                 $marks, $negMarks, $passPct,
                 $isPub, $quizId
@@ -92,20 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO " . tbl('quizzes') . " (
                     title_en, title_hi, title_te,
                     description_en, description_hi, description_te,
+                    languages, target_categories,
                     start_time, end_time, duration_minutes,
                     marks_per_question, negative_marks, pass_percentage,
                     is_published, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $insStmt->execute([
                 $titleEn, $titleHi, $titleTe,
                 $descEn, $descHi, $descTe,
+                $languagesStr, $targetCategoriesStr,
                 $startFormatted, $endFormatted, $duration,
                 $marks, $negMarks, $passPct,
                 $isPub, $_SESSION['user_id']
             ]);
             $newId = $pdo->lastInsertId();
-            header('Location: questions.php?quiz_id=' . $newId . '&message=' . urlencode('Quiz created! Now add questions in English, Hindi, and Telugu.'));
+            header('Location: questions.php?quiz_id=' . $newId . '&message=' . urlencode('Quiz created! Now add questions.'));
             exit();
         }
     }
@@ -118,7 +135,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="page-header">
     <div class="page-title">
         <h2><i class="fa-solid fa-pen-to-square" style="color: var(--bhel-gold);"></i> <?= $quizId > 0 ? 'Edit Quiz Settings' : 'Create New Quiz' ?></h2>
-        <p>Set up quiz details, time access window, and negative marking rules</p>
+        <p>Set up quiz details, language options, target employee categories, time access window, and scoring rules</p>
     </div>
     <div>
         <a href="index.php" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
@@ -130,9 +147,64 @@ require_once __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <form method="POST" action="quiz_edit.php?quiz_id=<?= $quizId ?>">
+
+    <!-- Language Options & Target Employee Category Setup Card -->
+    <div class="card">
+        <h3 style="font-size: 16px; color: var(--bhel-gold); margin-bottom: 20px;">
+            <i class="fa-solid fa-gear"></i> Quiz Language & Target Employee Group Setup
+        </h3>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label style="font-weight: 700; color: #FFF; margin-bottom: 10px; display: block;">
+                    <i class="fa-solid fa-language" style="color: var(--bhel-blue-accent);"></i> Available Quiz Language Options *
+                </label>
+                <?php $selectedLangs = explode(',', $quiz['languages']); ?>
+                <div style="display: flex; gap: 20px; align-items: center; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light); flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="languages[]" value="en" <?= in_array('en', $selectedLangs) ? 'checked' : '' ?> onchange="toggleLangInputs()" style="width: 18px; height: 18px; accent-color: var(--bhel-blue-accent);">
+                        <strong>English (EN)</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="languages[]" value="hi" id="chk-lang-hi" <?= in_array('hi', $selectedLangs) ? 'checked' : '' ?> onchange="toggleLangInputs()" style="width: 18px; height: 18px; accent-color: var(--bhel-blue-accent);">
+                        <strong>हिन्दी (Hindi)</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="languages[]" value="te" id="chk-lang-te" <?= in_array('te', $selectedLangs) ? 'checked' : '' ?> onchange="toggleLangInputs()" style="width: 18px; height: 18px; accent-color: var(--bhel-blue-accent);">
+                        <strong>తెలుగు (Telugu)</strong>
+                    </label>
+                </div>
+                <small style="color: var(--text-muted); font-size: 11px; margin-top: 5px; display: block;">Quizzes are single-language by default. Select extra languages if available for employees.</small>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight: 700; color: #FFF; margin-bottom: 10px; display: block;">
+                    <i class="fa-solid fa-users-gear" style="color: var(--bhel-gold);"></i> Target Employee Category (Select Group(s)) *
+                </label>
+                <?php $selectedCats = explode(',', $quiz['target_categories']); ?>
+                <div style="display: flex; gap: 20px; align-items: center; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light); flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="target_categories[]" value="executive" <?= in_array('executive', $selectedCats) ? 'checked' : '' ?> style="width: 18px; height: 18px; accent-color: var(--bhel-gold);">
+                        <strong>Executive</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="target_categories[]" value="supervisor" <?= in_array('supervisor', $selectedCats) ? 'checked' : '' ?> style="width: 18px; height: 18px; accent-color: var(--bhel-gold);">
+                        <strong>Supervisor</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="target_categories[]" value="workman" <?= in_array('workman', $selectedCats) ? 'checked' : '' ?> style="width: 18px; height: 18px; accent-color: var(--bhel-gold);">
+                        <strong>Workman</strong>
+                    </label>
+                </div>
+                <small style="color: var(--text-muted); font-size: 11px; margin-top: 5px; display: block;">Employees belonging to selected group(s) can view and take this quiz.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Title & Description Card -->
     <div class="card">
         <h3 style="font-size: 16px; color: var(--bhel-blue-accent); margin-bottom: 20px;">
-            <i class="fa-solid fa-language"></i> Trilingual Quiz Title & Description
+            <i class="fa-solid fa-heading"></i> Quiz Title & Description
         </h3>
 
         <div class="form-group">
@@ -140,27 +212,27 @@ require_once __DIR__ . '/../includes/header.php';
             <input type="text" name="title_en" class="form-control" value="<?= sanitize($quiz['title_en']) ?>" placeholder="e.g. Industrial Safety & Emergency Procedures Quiz 2026" required>
         </div>
 
-        <div class="grid-2">
+        <div class="form-group">
+            <label>Description (English)</label>
+            <textarea name="description_en" class="form-control" rows="2" placeholder="Brief overview of quiz content and instructions for employees"><?= sanitize($quiz['description_en']) ?></textarea>
+        </div>
+
+        <div id="group-lang-hi" style="display: none; margin-top: 15px; border-top: 1px dashed var(--border-light); padding-top: 15px;">
             <div class="form-group">
                 <label>Quiz Title (हिन्दी - Hindi)</label>
                 <input type="text" name="title_hi" class="form-control" value="<?= sanitize($quiz['title_hi']) ?>" placeholder="उदा. औद्योगिक सुरक्षा और आपातकालीन प्रक्रिया क्विज़">
             </div>
 
             <div class="form-group">
-                <label>Quiz Title (తెలుగు - Telugu)</label>
-                <input type="text" name="title_te" class="form-control" value="<?= sanitize($quiz['title_te']) ?>" placeholder="ఉదా. పారిశ్రామిక భద్రత మరియు ఎమర్జెన్సీ విధానాలు క్విజ్">
+                <label>Description (हिन्दी - Hindi)</label>
+                <textarea name="description_hi" class="form-control" rows="2" placeholder="कर्मचारियों के लिए संक्षिप्त विवरण"><?= sanitize($quiz['description_hi']) ?></textarea>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Description (English)</label>
-            <textarea name="description_en" class="form-control" rows="2" placeholder="Brief overview of quiz content and instructions for employees"><?= sanitize($quiz['description_en']) ?></textarea>
-        </div>
-
-        <div class="grid-2">
+        <div id="group-lang-te" style="display: none; margin-top: 15px; border-top: 1px dashed var(--border-light); padding-top: 15px;">
             <div class="form-group">
-                <label>Description (हिन्दी - Hindi)</label>
-                <textarea name="description_hi" class="form-control" rows="2" placeholder="कर्मचारियों के लिए संक्षिप्त विवरण"><?= sanitize($quiz['description_hi']) ?></textarea>
+                <label>Quiz Title (తెలుగు - Telugu)</label>
+                <input type="text" name="title_te" class="form-control" value="<?= sanitize($quiz['title_te']) ?>" placeholder="ఉదా. పారిశ్రామిక భద్రత మరియు ఎమర్జెన్సీ విధానాలు క్విజ్">
             </div>
 
             <div class="form-group">
@@ -226,5 +298,16 @@ require_once __DIR__ . '/../includes/header.php';
         </button>
     </div>
 </form>
+
+<script>
+function toggleLangInputs() {
+    const chkHi = document.getElementById('chk-lang-hi');
+    const chkTe = document.getElementById('chk-lang-te');
+    
+    document.getElementById('group-lang-hi').style.display = chkHi && chkHi.checked ? 'block' : 'none';
+    document.getElementById('group-lang-te').style.display = chkTe && chkTe.checked ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', toggleLangInputs);
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

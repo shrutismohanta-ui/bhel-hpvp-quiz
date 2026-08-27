@@ -18,7 +18,7 @@ if ($attemptId <= 0) {
 
 // Fetch Attempt Details
 $stmt = $pdo->prepare("
-    SELECT a.*, q.title_en, q.title_hi, q.title_te, q.marks_per_question, q.negative_marks, q.pass_percentage, u.full_name, u.staff_no 
+    SELECT a.*, q.title_en, q.title_hi, q.title_te, q.languages, q.marks_per_question, q.negative_marks, q.pass_percentage, u.full_name, u.staff_no 
     FROM " . tbl('attempts') . " a
     JOIN " . tbl('quizzes') . " q ON a.quiz_id = q.quiz_id
     JOIN " . tbl('users') . " u ON a.user_id = u.user_id
@@ -59,7 +59,24 @@ $questions = $qStmt->fetchAll();
 $pct = $attempt['total_marks'] > 0 ? round(($attempt['score_achieved'] / $attempt['total_marks']) * 100, 1) : 0;
 $isPassed = $pct >= (float)$attempt['pass_percentage'];
 
-$pageTitle = 'Scorecard - ' . $attempt['title_en'];
+$enabledLangs = explode(',', $attempt['languages'] ?? 'en');
+$enabledLangs = array_values(array_filter(array_map('trim', $enabledLangs)));
+if (empty($enabledLangs)) $enabledLangs = ['en'];
+$primaryLang = $enabledLangs[0];
+
+// Select title according to primary language
+$primaryTitle = '';
+if ($primaryLang === 'hi' && !empty($attempt['title_hi'])) {
+    $primaryTitle = $attempt['title_hi'];
+} elseif ($primaryLang === 'te' && !empty($attempt['title_te'])) {
+    $primaryTitle = $attempt['title_te'];
+} elseif (!empty($attempt['title_en'])) {
+    $primaryTitle = $attempt['title_en'];
+} else {
+    $primaryTitle = !empty($attempt['title_hi']) ? $attempt['title_hi'] : (!empty($attempt['title_te']) ? $attempt['title_te'] : $attempt['title_en']);
+}
+
+$pageTitle = 'Scorecard - ' . $primaryTitle;
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -80,7 +97,7 @@ require_once __DIR__ . '/includes/header.php';
         <?= $isPassed ? 'QUIZ PASSED' : 'NEEDS IMPROVEMENT' ?> (Min Pass: <?= (float)$attempt['pass_percentage'] ?>%)
     </span>
 
-    <h2 style="font-size: 24px; color: #FFF; margin-bottom: 5px;"><?= sanitize($attempt['title_en']) ?></h2>
+    <h2 style="font-size: 24px; color: #FFF; margin-bottom: 5px;"><?= sanitize($primaryTitle) ?></h2>
     
     <div class="score-circle">
         <div class="score-num"><?= number_format($attempt['score_achieved'], 2) ?></div>
@@ -142,12 +159,19 @@ require_once __DIR__ . '/includes/header.php';
             <i class="fa-solid fa-list-ol" style="color: var(--bhel-blue-accent);"></i> Detailed Answer Sheet Review
         </h3>
 
-        <!-- Language switcher for review -->
-        <div class="lang-switcher-bar" style="margin-bottom: 0;">
-            <button type="button" class="lang-btn active" onclick="switchReviewLang('en')">English</button>
-            <button type="button" class="lang-btn" onclick="switchReviewLang('hi')">हिन्दी</button>
-            <button type="button" class="lang-btn" onclick="switchReviewLang('te')">తెలుగు</button>
-        </div>
+        <!-- Language switcher for review (only if multiple languages enabled for quiz) -->
+        <?php if (count($enabledLangs) > 1): ?>
+            <div class="lang-switcher-bar" style="margin-bottom: 0;">
+                <?php 
+                $langLabels = ['en' => 'English', 'hi' => 'हिन्दी', 'te' => 'తెలుగు'];
+                foreach ($enabledLangs as $idx => $lCode): 
+                ?>
+                    <button type="button" class="lang-btn <?= $lCode === $primaryLang ? 'active' : '' ?>" onclick="switchReviewLang('<?= $lCode ?>', this)">
+                        <i class="fa-solid fa-language"></i> <?= $langLabels[$lCode] ?? strtoupper($lCode) ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -176,16 +200,15 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
-                <!-- Trilingual Question Content -->
-                <h4 class="rev-lang rev-en" style="font-size: 16px; font-weight: 600; color: #FFF; margin-bottom: 15px; display: block;">
-                    <?= sanitize($q['question_en']) ?>
-                </h4>
-                <h4 class="rev-lang rev-hi" style="font-size: 16px; font-weight: 600; color: #FFF; margin-bottom: 15px; display: none;">
-                    <?= sanitize(!empty($q['question_hi']) ? $q['question_hi'] : $q['question_en']) ?>
-                </h4>
-                <h4 class="rev-lang rev-te" style="font-size: 16px; font-weight: 600; color: #FFF; margin-bottom: 15px; display: none;">
-                    <?= sanitize(!empty($q['question_te']) ? $q['question_te'] : $q['question_en']) ?>
-                </h4>
+                <!-- Multilingual Question Text -->
+                <?php foreach ($enabledLangs as $lCode): 
+                    $qText = !empty($q["question_{$lCode}"]) ? $q["question_{$lCode}"] : (!empty($q['question_en']) ? $q['question_en'] : (!empty($q['question_hi']) ? $q['question_hi'] : $q['question_te']));
+                    $displayStyle = ($lCode === $primaryLang) ? 'display: block;' : 'display: none;';
+                ?>
+                    <h4 class="rev-lang rev-<?= $lCode ?>" style="font-size: 16px; font-weight: 600; color: #FFF; margin-bottom: 15px; <?= $displayStyle ?>">
+                        <?= sanitize($qText) ?>
+                    </h4>
+                <?php endforeach; ?>
 
                 <!-- Options Review -->
                 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -206,9 +229,12 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="review-opt <?= $optClass ?>" style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong><?= chr(64 + $i) ?>.</strong>
-                                <span class="rev-lang rev-en"><?= sanitize($q["option_{$i}_en"]) ?></span>
-                                <span class="rev-lang rev-hi" style="display: none;"><?= sanitize(!empty($q["option_{$i}_hi"]) ? $q["option_{$i}_hi"] : $q["option_{$i}_en"]) ?></span>
-                                <span class="rev-lang rev-te" style="display: none;"><?= sanitize(!empty($q["option_{$i}_te"]) ? $q["option_{$i}_te"] : $q["option_{$i}_en"]) ?></span>
+                                <?php foreach ($enabledLangs as $lCode): 
+                                    $optText = !empty($q["option_{$i}_{$lCode}"]) ? $q["option_{$i}_{$lCode}"] : (!empty($q["option_{$i}_en"]) ? $q["option_{$i}_en"] : (!empty($q["option_{$i}_hi"]) ? $q["option_{$i}_hi"] : $q["option_{$i}_te"]));
+                                    $displayStyle = ($lCode === $primaryLang) ? 'display: inline;' : 'display: none;';
+                                ?>
+                                    <span class="rev-lang rev-<?= $lCode ?>" style="<?= $displayStyle ?>"><?= sanitize($optText) ?></span>
+                                <?php endforeach; ?>
                             </div>
 
                             <div>
@@ -225,12 +251,22 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <!-- Explanation Box -->
-                <?php if (!empty($q['explanation_en'])): ?>
+                <?php 
+                $hasExp = false;
+                foreach ($enabledLangs as $lCode) {
+                    if (!empty($q["explanation_{$lCode}"])) { $hasExp = true; break; }
+                }
+                if (!$hasExp && !empty($q['explanation_en'])) { $hasExp = true; }
+                ?>
+                <?php if ($hasExp): ?>
                     <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--border-light); padding: 12px 15px; border-radius: 8px; margin-top: 15px; font-size: 13px; color: var(--text-secondary);">
                         <strong style="color: var(--bhel-gold);"><i class="fa-solid fa-lightbulb"></i> Explanation:</strong>
-                        <span class="rev-lang rev-en"><?= sanitize($q['explanation_en']) ?></span>
-                        <span class="rev-lang rev-hi" style="display: none;"><?= sanitize(!empty($q['explanation_hi']) ? $q['explanation_hi'] : $q['explanation_en']) ?></span>
-                        <span class="rev-lang rev-te" style="display: none;"><?= sanitize(!empty($q['explanation_te']) ? $q['explanation_te'] : $q['explanation_en']) ?></span>
+                        <?php foreach ($enabledLangs as $lCode): 
+                            $expText = !empty($q["explanation_{$lCode}"]) ? $q["explanation_{$lCode}"] : (!empty($q['explanation_en']) ? $q['explanation_en'] : (!empty($q['explanation_hi']) ? $q['explanation_hi'] : $q['explanation_te']));
+                            $displayStyle = ($lCode === $primaryLang) ? 'display: inline;' : 'display: none;';
+                        ?>
+                            <span class="rev-lang rev-<?= $lCode ?>" style="<?= $displayStyle ?>"><?= sanitize($expText) ?></span>
+                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -239,11 +275,18 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-function switchReviewLang(lang) {
-    document.querySelectorAll('.rev-lang').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.rev-' + lang).forEach(el => el.style.display = 'inline-block');
-    document.querySelectorAll('.lang-switcher-bar .lang-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+function switchReviewLang(lang, btn) {
+    document.querySelectorAll('.rev-lang').forEach(el => {
+        if (el.classList.contains('rev-' + lang)) {
+            el.style.display = el.tagName === 'H4' ? 'block' : 'inline';
+        } else {
+            el.style.display = 'none';
+        }
+    });
+    if (btn) {
+        document.querySelectorAll('.lang-switcher-bar .lang-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
 }
 </script>
 

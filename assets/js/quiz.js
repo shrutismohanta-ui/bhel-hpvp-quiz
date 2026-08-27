@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof quizData === 'undefined') return;
 
     let currentQuestionIndex = 0;
-    let currentLang = 'en'; // 'en', 'hi', 'te'
+    let currentLang = (quizData.enabled_languages && quizData.enabled_languages.length > 0) ? quizData.enabled_languages[0] : 'en';
     const totalQuestions = quizData.questions.length;
     let remainingSeconds = quizData.remaining_seconds;
     let timerInterval = null;
@@ -82,8 +82,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const q = quizData.questions[index];
         const qId = q.question_id;
 
+        const primaryLang = (quizData.enabled_languages && quizData.enabled_languages.length > 0) ? quizData.enabled_languages[0] : 'en';
+
         // Question text by language
-        const qText = q['question_' + currentLang] || q['question_en'];
+        const qText = q['question_' + currentLang] || q['question_' + primaryLang] || q['question_en'] || q['question_hi'] || q['question_te'];
         qTextEl.textContent = `${index + 1}. ${qText}`;
         currentQNumBadge.textContent = `Question ${index + 1} of ${totalQuestions}`;
 
@@ -92,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedOpt = userResponses[qId] || null;
 
         for (let i = 1; i <= 4; i++) {
-            const optText = q[`option_${i}_${currentLang}`] || q[`option_${i}_en`];
+            const optText = q[`option_${i}_${currentLang}`] || q[`option_${i}_${primaryLang}`] || q[`option_${i}_en`] || q[`option_${i}_hi`] || q[`option_${i}_te`];
             const optLetter = String.fromCharCode(64 + i); // A, B, C, D
 
             const optDiv = document.createElement('div');

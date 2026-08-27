@@ -57,6 +57,33 @@ function getDBConnection() {
             }
         }
 
+        // Auto-migration for schema upgrades (employee_category, languages, target_categories)
+        static $migrated = false;
+        if (!$migrated) {
+            $migrated = true;
+            try {
+                // Check quiz_users for employee_category
+                $colUsers = $pdo->query("SHOW COLUMNS FROM " . tbl('users') . " LIKE 'employee_category'");
+                if ($colUsers && $colUsers->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE " . tbl('users') . " ADD COLUMN `employee_category` ENUM('executive', 'supervisor', 'workman') NOT NULL DEFAULT 'workman' AFTER `role`");
+                }
+
+                // Check quiz_quizzes for languages
+                $colLang = $pdo->query("SHOW COLUMNS FROM " . tbl('quizzes') . " LIKE 'languages'");
+                if ($colLang && $colLang->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE " . tbl('quizzes') . " ADD COLUMN `languages` VARCHAR(50) NOT NULL DEFAULT 'en' AFTER `description_te`");
+                }
+
+                // Check quiz_quizzes for target_categories
+                $colCat = $pdo->query("SHOW COLUMNS FROM " . tbl('quizzes') . " LIKE 'target_categories'");
+                if ($colCat && $colCat->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE " . tbl('quizzes') . " ADD COLUMN `target_categories` VARCHAR(100) NOT NULL DEFAULT 'executive,supervisor,workman' AFTER `languages`");
+                }
+            } catch (Exception $migErr) {
+                // Ignore migration error if tables do not exist yet
+            }
+        }
+
         return $pdo;
     } catch (PDOException $e) {
         // If database connection fails, offer setup/install option

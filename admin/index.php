@@ -134,15 +134,25 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php else: ?>
                     <?php foreach ($quizzes as $q): 
                         $status = get_quiz_status($q['start_time'], $q['end_time'], $q['is_published']);
+                        $qLangs = explode(',', $q['languages'] ?? 'en');
+                        $qCats = explode(',', $q['target_categories'] ?? 'executive,supervisor,workman');
                     ?>
                         <tr>
                             <td>
-                                <strong style="color: #FFF; font-size: 15px;"><?= sanitize($q['title_en']) ?></strong>
+                                <strong style="color: #FFF; font-size: 15px;"><?= sanitize(!empty($q['title_en']) ? $q['title_en'] : ($q['title_hi'] ?: $q['title_te'])) ?></strong>
                                 <?php if (!empty($q['title_hi']) || !empty($q['title_te'])): ?>
                                     <div style="font-size: 12px; color: var(--bhel-gold); margin-top: 2px;">
-                                        <?= sanitize($q['title_hi']) ?> | <?= sanitize($q['title_te']) ?>
+                                        <?= sanitize($q['title_hi']) ?> <?= (!empty($q['title_hi']) && !empty($q['title_te'])) ? '|' : '' ?> <?= sanitize($q['title_te']) ?>
                                     </div>
                                 <?php endif; ?>
+                                <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                                    <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(0, 210, 255, 0.15); color: var(--bhel-blue-accent); border: 1px solid rgba(0, 210, 255, 0.3);">
+                                        <i class="fa-solid fa-language"></i> <?= strtoupper(implode(', ', $qLangs)) ?>
+                                    </span>
+                                    <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 193, 7, 0.15); color: var(--bhel-gold); border: 1px solid rgba(255, 193, 7, 0.3);">
+                                        <i class="fa-solid fa-users"></i> <?= implode(', ', array_map('ucfirst', $qCats)) ?>
+                                    </span>
+                                </div>
                             </td>
                             <td style="font-size: 12px;">
                                 <div><strong>From:</strong> <?= format_datetime($q['start_time']) ?></div>

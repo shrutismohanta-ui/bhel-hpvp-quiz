@@ -125,15 +125,34 @@ foreach ($existingResponsesRaw as $r) {
     $initialReviews[$r['question_id']] = (bool)$r['is_marked_review'];
 }
 
-$pageTitle = 'Quiz: ' . $quiz['title_en'];
+$enabledLangs = explode(',', $quiz['languages'] ?? 'en');
+$enabledLangs = array_values(array_filter(array_map('trim', $enabledLangs)));
+if (empty($enabledLangs)) $enabledLangs = ['en'];
+$primaryLang = $enabledLangs[0];
+
+$primaryTitle = '';
+if ($primaryLang === 'hi' && !empty($quiz['title_hi'])) {
+    $primaryTitle = $quiz['title_hi'];
+} elseif ($primaryLang === 'te' && !empty($quiz['title_te'])) {
+    $primaryTitle = $quiz['title_te'];
+} elseif (!empty($quiz['title_en'])) {
+    $primaryTitle = $quiz['title_en'];
+} else {
+    $primaryTitle = !empty($quiz['title_hi']) ? $quiz['title_hi'] : (!empty($quiz['title_te']) ? $quiz['title_te'] : $quiz['title_en']);
+}
+
+$pageTitle = 'Quiz: ' . $primaryTitle;
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- Timer & Header Bar -->
 <div class="timer-card">
     <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 2px;">
-            <?= sanitize($quiz['title_en']) ?>
+        <h3 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span><?= sanitize($primaryTitle) ?></span>
+            <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; background: rgba(0, 210, 255, 0.2); color: var(--bhel-blue-accent); border: 1px solid rgba(0, 210, 255, 0.4); font-weight: 600;">
+                <i class="fa-solid fa-language"></i> Language: <?= strtoupper(implode(', ', $enabledLangs)) ?>
+            </span>
         </h3>
         <p style="font-size: 12px; color: var(--bhel-gold);">
             Marks/Q: +<?= number_format($quiz['marks_per_question'], 1) ?> | Negative Marks: -<?= number_format($quiz['negative_marks'], 2) ?>
@@ -145,18 +164,19 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<!-- Trilingual Language Switcher Bar -->
-<div class="lang-switcher-bar">
-    <button type="button" class="lang-btn active" data-lang="en">
-        <i class="fa-solid fa-language"></i> English
-    </button>
-    <button type="button" class="lang-btn" data-lang="hi">
-        <i class="fa-solid fa-language"></i> हिन्दी (Hindi)
-    </button>
-    <button type="button" class="lang-btn" data-lang="te">
-        <i class="fa-solid fa-language"></i> తెలుగు (Telugu)
-    </button>
-</div>
+<!-- Multilingual Language Switcher Bar (Only if multiple languages enabled) -->
+<?php if (count($enabledLangs) > 1): ?>
+    <div class="lang-switcher-bar">
+        <?php 
+        $langLabels = ['en' => 'English', 'hi' => 'हिन्दी (Hindi)', 'te' => 'తెలుగు (Telugu)'];
+        foreach ($enabledLangs as $idx => $lCode): 
+        ?>
+            <button type="button" class="lang-btn <?= $idx === 0 ? 'active' : '' ?>" data-lang="<?= $lCode ?>">
+                <i class="fa-solid fa-language"></i> <?= $langLabels[$lCode] ?? strtoupper($lCode) ?>
+            </button>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 
 <!-- Main Quiz Layout (Question + Sidebar Palette) -->
 <div class="quiz-layout">
@@ -246,6 +266,7 @@ const quizData = {
     quiz_id: <?= (int)$quiz['quiz_id'] ?>,
     attempt_id: <?= (int)$attemptId ?>,
     remaining_seconds: <?= (int)$remainingSecs ?>,
+    enabled_languages: <?= json_encode($enabledLangs) ?>,
     questions: <?= json_encode($questions, JSON_UNESCAPED_UNICODE) ?>,
     initial_responses: <?= json_encode($initialResponses) ?>,
     initial_reviews: <?= json_encode($initialReviews) ?>

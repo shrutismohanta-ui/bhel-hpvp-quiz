@@ -11,7 +11,7 @@ $pdo = getDBConnection();
 $quizId = isset($_GET['quiz_id']) ? (int)$_GET['quiz_id'] : 0;
 
 // Fetch all quizzes for selector
-$quizzesStmt = $pdo->query("SELECT quiz_id, title_en FROM " . tbl('quizzes') . " ORDER BY created_at DESC");
+$quizzesStmt = $pdo->query("SELECT quiz_id, title_en, title_hi, title_te, languages FROM " . tbl('quizzes') . " ORDER BY created_at DESC");
 $allQuizzes = $quizzesStmt->fetchAll();
 
 if ($quizId <= 0 && !empty($allQuizzes)) {
@@ -25,6 +25,9 @@ $totalAttempts = 0;
 $passedCount = 0;
 $avgScore = 0;
 $highestScore = 0;
+$enabledLangs = ['en'];
+$primaryLang = 'en';
+$primaryTitle = '';
 
 if ($quizId > 0) {
     // Fetch Quiz header
@@ -33,6 +36,21 @@ if ($quizId > 0) {
     $quiz = $qStmt->fetch();
 
     if ($quiz) {
+        $enabledLangs = explode(',', $quiz['languages'] ?? 'en');
+        $enabledLangs = array_values(array_filter(array_map('trim', $enabledLangs)));
+        if (empty($enabledLangs)) $enabledLangs = ['en'];
+        $primaryLang = $enabledLangs[0];
+
+        if ($primaryLang === 'hi' && !empty($quiz['title_hi'])) {
+            $primaryTitle = $quiz['title_hi'];
+        } elseif ($primaryLang === 'te' && !empty($quiz['title_te'])) {
+            $primaryTitle = $quiz['title_te'];
+        } elseif (!empty($quiz['title_en'])) {
+            $primaryTitle = $quiz['title_en'];
+        } else {
+            $primaryTitle = !empty($quiz['title_hi']) ? $quiz['title_hi'] : (!empty($quiz['title_te']) ? $quiz['title_te'] : $quiz['title_en']);
+        }
+
         // Fetch completed attempts
         $attStmt = $pdo->prepare("
             SELECT a.*, u.full_name, u.staff_no, u.department 
@@ -60,9 +78,9 @@ if ($quizId > 0) {
             $avgScore = $sumScore / $totalAttempts;
         }
 
-        // Fetch Question Accuracy Stats
+        // Fetch Question Accuracy Stats with Trilingual Question Text
         $qsStmt = $pdo->prepare("
-            SELECT q.question_id, q.question_num, q.question_en, q.correct_option,
+            SELECT q.question_id, q.question_num, q.question_en, q.question_hi, q.question_te, q.correct_option,
                    COUNT(r.response_id) as total_responses,
                    SUM(CASE WHEN r.is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
                    SUM(CASE WHEN r.selected_option = 1 THEN 1 ELSE 0 END) as opt1_count,
@@ -80,7 +98,7 @@ if ($quizId > 0) {
 
         // Handle Excel / CSV Export Download
         if (isset($_GET['export']) && ($_GET['export'] === 'excel' || $_GET['export'] === 'csv')) {
-            $filename = 'BHEL_HPVP_Quiz_Results_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $quiz['title_en']) . '_' . date('Ymd_His') . '.csv';
+            $filename = 'BHEL_HPVP_Quiz_Results_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $primaryTitle) . '_' . date('Ymd_His') . '.csv';
 
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -94,7 +112,7 @@ if ($quizId > 0) {
 
             // Summary Metadata Rows
             fputcsv($output, ['BHEL-HPVP Visakhapatnam - Quiz Attempt Performance Report']);
-            fputcsv($output, ['Quiz Title', $quiz['title_en']]);
+            fputcsv($output, ['Quiz Title', $primaryTitle]);
             fputcsv($output, ['Export Date & Time', date('d M Y, h:i A')]);
             fputcsv($output, ['Total Participants', $totalAttempts]);
             fputcsv($output, ['Overall Pass Rate', ($totalAttempts > 0 ? round(($passedCount / $totalAttempts) * 100, 1) : 0) . '%']);
@@ -161,10 +179,14 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="card" style="padding: 15px 25px; margin-bottom: 25px;">
     <form method="GET" action="results.php" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
         <label style="font-weight: 700; color: #FFF;"><i class="fa-solid fa-filter"></i> Select Quiz to View Stats:</label>
-        <select name="quiz_id" class="form-control" style="max-width: 400px;" onchange="this.form.submit()">
-            <?php foreach ($allQuizzes as $qItem): ?>
+        <select name="quiz_id" class="form-control" style="max-width: 450px;" onchange="this.form.submit()">
+            <?php foreach ($allQuizzes as $qItem): 
+                $qL = explode(',', $qItem['languages'] ?? 'en');
+                $pL = trim($qL[0]);
+                $qTitle = !empty($qItem['title_' . $pL]) ? $qItem['title_' . $pL] : (!empty($qItem['title_en']) ? $qItem['title_en'] : (!empty($qItem['title_hi']) ? $qItem['title_hi'] : $qItem['title_te']));
+            ?>
                 <option value="<?= $qItem['quiz_id'] ?>" <?= $qItem['quiz_id'] == $quizId ? 'selected' : '' ?>>
-                    <?= sanitize($qItem['title_en']) ?>
+                    <?= sanitize($qTitle) ?> [<?= strtoupper($qItem['languages']) ?>]
                 </option>
             <?php endforeach; ?>
         </select>
@@ -282,22 +304,38 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- Question Accuracy Breakdown -->
+    <!-- Question-by-Question Accuracy Breakdown Card -->
     <div class="card">
-        <h3 style="font-size: 18px; color: #FFF; margin-bottom: 20px;">
-            <i class="fa-solid fa-chart-line" style="color: var(--bhel-gold);"></i> Question-by-Question Accuracy Breakdown
-        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="font-size: 18px; color: #FFF; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-line" style="color: var(--bhel-gold);"></i> Question-by-Question Accuracy Breakdown
+            </h3>
+
+            <!-- Language switcher for accuracy breakdown table (if multiple languages configured for quiz) -->
+            <?php if (count($enabledLangs) > 1): ?>
+                <div class="lang-switcher-bar" style="margin-bottom: 0;">
+                    <?php 
+                    $langLabels = ['en' => 'English', 'hi' => 'हिन्दी', 'te' => 'తెలుగు'];
+                    foreach ($enabledLangs as $idx => $lCode): 
+                    ?>
+                        <button type="button" class="lang-btn <?= $lCode === $primaryLang ? 'active' : '' ?>" onclick="switchBreakdownLang('<?= $lCode ?>', this)">
+                            <i class="fa-solid fa-language"></i> <?= $langLabels[$lCode] ?? strtoupper($lCode) ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
         <div class="table-responsive">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Q#</th>
-                        <th>Question Text (English)</th>
-                        <th>Correct Option</th>
-                        <th>Total Responses</th>
-                        <th>Correct Rate %</th>
-                        <th>Choice Breakdown (A / B / C / D)</th>
+                        <th style="width: 60px;">Q#</th>
+                        <th>Question Text</th>
+                        <th style="width: 140px;">Correct Option</th>
+                        <th style="width: 130px;">Total Responses</th>
+                        <th style="width: 130px;">Correct Rate %</th>
+                        <th style="width: 200px;">Choice Breakdown (A / B / C / D)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -307,7 +345,16 @@ require_once __DIR__ . '/../includes/header.php';
                     ?>
                         <tr>
                             <td style="font-weight: 700; color: var(--bhel-blue-accent);">Q<?= $qs['question_num'] ?></td>
-                            <td style="max-width: 300px;"><?= sanitize($qs['question_en']) ?></td>
+                            <td style="max-width: 380px;">
+                                <?php foreach ($enabledLangs as $lCode): 
+                                    $qText = !empty($qs["question_{$lCode}"]) ? $qs["question_{$lCode}"] : (!empty($qs['question_en']) ? $qs['question_en'] : (!empty($qs['question_hi']) ? $qs['question_hi'] : $qs['question_te']));
+                                    $displayStyle = ($lCode === $primaryLang) ? 'display: block;' : 'display: none;';
+                                ?>
+                                    <div class="q-breakdown-lang q-bd-<?= $lCode ?>" style="<?= $displayStyle ?>">
+                                        <?= sanitize($qText) ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </td>
                             <td><span class="badge badge-success">Option <?= $qs['correct_option'] ?> (<?= chr(64 + $qs['correct_option']) ?>)</span></td>
                             <td><?= $totalR ?></td>
                             <td>
@@ -325,6 +372,22 @@ require_once __DIR__ . '/../includes/header.php';
             </table>
         </div>
     </div>
+
+    <script>
+    function switchBreakdownLang(lang, btn) {
+        document.querySelectorAll('.q-breakdown-lang').forEach(el => {
+            if (el.classList.contains('q-bd-' + lang)) {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+        if (btn) {
+            document.querySelectorAll('.lang-switcher-bar .lang-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    }
+    </script>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

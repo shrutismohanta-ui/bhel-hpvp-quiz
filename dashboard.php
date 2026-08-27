@@ -21,7 +21,22 @@ $quizzesStmt = $pdo->prepare("
     ORDER BY q.start_time DESC
 ");
 $quizzesStmt->execute();
-$allQuizzes = $quizzesStmt->fetchAll();
+$allQuizzesRaw = $quizzesStmt->fetchAll();
+
+$userCategory = $_SESSION['employee_category'] ?? 'workman';
+
+// Filter quizzes by employee category (Admins see all)
+$allQuizzes = [];
+foreach ($allQuizzesRaw as $qItem) {
+    if (is_admin()) {
+        $allQuizzes[] = $qItem;
+    } else {
+        $targetCats = explode(',', $qItem['target_categories'] ?? 'executive,supervisor,workman');
+        if (in_array($userCategory, $targetCats)) {
+            $allQuizzes[] = $qItem;
+        }
+    }
+}
 
 // Fetch user attempts
 $attemptsStmt = $pdo->prepare("
@@ -61,7 +76,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="page-header">
     <div class="page-title">
         <h2><i class="fa-solid fa-graduation-cap" style="color: var(--bhel-gold);"></i> BHEL Vizag Quiz Dashboard</h2>
-        <p>Welcome back, <strong><?= sanitize($_SESSION['full_name']) ?></strong> (Department: <?= sanitize($_SESSION['department']) ?>)</p>
+        <p>Welcome back, <strong><?= sanitize($_SESSION['full_name']) ?></strong> (Dept: <strong><?= sanitize($_SESSION['department']) ?></strong> | Category: <span class="badge badge-info"><?= ucfirst(sanitize($userCategory)) ?></span>)</p>
     </div>
     <div>
         <a href="dashboard.php" class="btn btn-outline"><i class="fa-solid fa-rotate"></i> Refresh Page</a>
@@ -84,7 +99,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="stat-content">
             <h3><?= count($allQuizzes) ?></h3>
-            <p>Total Quizzes Available</p>
+            <p>Assigned Quizzes</p>
         </div>
     </div>
 
@@ -123,46 +138,65 @@ require_once __DIR__ . '/includes/header.php';
 <div style="margin-bottom: 40px;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
         <h3 style="font-size: 18px; color: #FFF; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-bolt" style="color: var(--bhel-blue-accent);"></i> Available & Live Quizzes
+            <i class="fa-solid fa-bolt" style="color: var(--bhel-blue-accent);"></i> Available & Live Quizzes for <?= ucfirst(sanitize($userCategory)) ?> Category
         </h3>
     </div>
 
-    <div class="grid-2">
-        <?php 
-        $activeCount = 0;
-        foreach ($allQuizzes as $q):
-            $qStatus = get_quiz_status($q['start_time'], $q['end_time'], $q['is_published']);
-            $existingAttempt = $userAttemptsByQuiz[$q['quiz_id']] ?? null;
-        ?>
-            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--bhel-blue-accent);">
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                        <span class="badge <?= $qStatus['badge'] ?>"><?= $qStatus['label'] ?></span>
-                        <span style="font-size: 12px; color: var(--text-muted);">
-                            <i class="fa-solid fa-clock"></i> <?= (int)$q['duration_minutes'] ?> Mins
-                        </span>
-                    </div>
-
-                    <h4 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 6px;">
-                        <?= sanitize($q['title_en']) ?>
-                    </h4>
-                    <?php if (!empty($q['title_hi']) || !empty($q['title_te'])): ?>
-                        <div style="font-size: 13px; color: var(--bhel-gold); margin-bottom: 10px;">
-                            <?= sanitize($q['title_hi']) ?> | <?= sanitize($q['title_te']) ?>
+    <?php if (empty($allQuizzes)): ?>
+        <div class="card" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <i class="fa-solid fa-folder-open" style="font-size: 40px; margin-bottom: 15px; color: var(--bhel-gold);"></i>
+            <p style="font-size: 16px;">No quizzes currently assigned for your employee category (<strong><?= ucfirst(sanitize($userCategory)) ?></strong>).</p>
+        </div>
+    <?php else: ?>
+        <div class="grid-2">
+            <?php 
+            foreach ($allQuizzes as $q):
+                $qStatus = get_quiz_status($q['start_time'], $q['end_time'], $q['is_published']);
+                $existingAttempt = $userAttemptsByQuiz[$q['quiz_id']] ?? null;
+                $qLangs = explode(',', $q['languages'] ?? 'en');
+                $qCats = explode(',', $q['target_categories'] ?? 'executive,supervisor,workman');
+                $primaryTitle = !empty($q['title_en']) ? $q['title_en'] : (!empty($q['title_hi']) ? $q['title_hi'] : $q['title_te']);
+                $primaryDesc = !empty($q['description_en']) ? $q['description_en'] : (!empty($q['description_hi']) ? $q['description_hi'] : $q['description_te']);
+            ?>
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--bhel-blue-accent);">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <span class="badge <?= $qStatus['badge'] ?>"><?= $qStatus['label'] ?></span>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(0, 210, 255, 0.15); color: var(--bhel-blue-accent); border: 1px solid rgba(0, 210, 255, 0.3);">
+                                    <i class="fa-solid fa-language"></i> <?= strtoupper(implode(', ', $qLangs)) ?>
+                                </span>
+                                <span style="font-size: 12px; color: var(--text-muted);">
+                                    <i class="fa-solid fa-clock"></i> <?= (int)$q['duration_minutes'] ?> Mins
+                                </span>
+                            </div>
                         </div>
-                    <?php endif; ?>
 
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
-                        <?= sanitize($q['description_en']) ?>
-                    </p>
+                        <h4 style="font-size: 18px; font-weight: 700; color: #FFF; margin-bottom: 6px;">
+                            <?= sanitize($primaryTitle) ?>
+                        </h4>
+                        <?php 
+                        $subTitles = [];
+                        if (in_array('hi', $qLangs) && !empty($q['title_hi']) && $primaryTitle !== $q['title_hi']) $subTitles[] = $q['title_hi'];
+                        if (in_array('te', $qLangs) && !empty($q['title_te']) && $primaryTitle !== $q['title_te']) $subTitles[] = $q['title_te'];
+                        if (!empty($subTitles)): 
+                        ?>
+                            <div style="font-size: 13px; color: var(--bhel-gold); margin-bottom: 10px;">
+                                <?= sanitize(implode(' | ', $subTitles)) ?>
+                            </div>
+                        <?php endif; ?>
 
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
-                        <div><i class="fa-solid fa-circle-question" style="color: var(--bhel-blue-accent);"></i> Questions: <strong><?= $q['question_count'] ?></strong></div>
-                        <div><i class="fa-solid fa-award" style="color: var(--bhel-gold);"></i> Marks/Q: <strong>+<?= number_format($q['marks_per_question'], 1) ?></strong></div>
-                        <div><i class="fa-solid fa-triangle-exclamation" style="color: var(--status-danger);"></i> Negative Marks: <strong style="color: #FCA5A5;">-<?= number_format($q['negative_marks'], 2) ?></strong></div>
-                        <div><i class="fa-solid fa-calendar-check" style="color: var(--status-active);"></i> Window: <strong><?= date('d M H:i', strtotime($q['start_time'])) ?> to <?= date('d M H:i', strtotime($q['end_time'])) ?></strong></div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                            <?= sanitize($primaryDesc) ?>
+                        </p>
+
+                        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; font-size: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+                            <div><i class="fa-solid fa-circle-question" style="color: var(--bhel-blue-accent);"></i> Questions: <strong><?= $q['question_count'] ?></strong></div>
+                            <div><i class="fa-solid fa-award" style="color: var(--bhel-gold);"></i> Marks/Q: <strong>+<?= number_format($q['marks_per_question'], 1) ?></strong></div>
+                            <div><i class="fa-solid fa-triangle-exclamation" style="color: var(--status-danger);"></i> Negative Marks: <strong style="color: #FCA5A5;">-<?= number_format($q['negative_marks'], 2) ?></strong></div>
+                            <div><i class="fa-solid fa-calendar-check" style="color: var(--status-active);"></i> Window: <strong><?= date('d M H:i', strtotime($q['start_time'])) ?> to <?= date('d M H:i', strtotime($q['end_time'])) ?></strong></div>
+                        </div>
                     </div>
-                </div>
 
                 <div>
                     <?php if ($existingAttempt && $existingAttempt['status'] === 'completed'): ?>
@@ -190,6 +224,8 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         <?php endforeach; ?>
     </div>
+<?php endif; ?>
 </div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
+

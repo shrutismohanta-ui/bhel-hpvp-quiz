@@ -31,6 +31,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'toggle_role' && isset($_GET['
     }
 }
 
+// Handle Update Category
+if (isset($_GET['action']) && $_GET['action'] === 'update_category' && isset($_GET['user_id']) && isset($_GET['category'])) {
+    $uId = (int)$_GET['user_id'];
+    $cat = $_GET['category'];
+    if (in_array($cat, ['executive', 'supervisor', 'workman'])) {
+        $up = $pdo->prepare("UPDATE " . tbl('users') . " SET employee_category = ? WHERE user_id = ?");
+        $up->execute([$cat, $uId]);
+        header('Location: users.php?message=' . urlencode('Employee category updated to ' . ucfirst($cat)));
+        exit();
+    }
+}
+
 // Handle Add User
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_user') {
     $staffNo = trim($_POST['staff_no'] ?? '');
@@ -38,12 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $email = trim($_POST['email'] ?? '');
     $department = trim($_POST['department'] ?? '');
     $role = $_POST['role'] ?? 'employee';
+    $empCategory = $_POST['employee_category'] ?? 'workman';
     $password = $_POST['password'] ?? 'bhel123';
 
     if (empty($staffNo) || empty($fullName)) {
         $error = 'Staff Number and Full Name are required.';
     } else {
-        $res = register_user($staffNo, $fullName, $email, $department, $password);
+        $res = register_user($staffNo, $fullName, $email, $department, $password, $empCategory);
         if ($res['success']) {
             if ($role === 'admin') {
                 $up = $pdo->prepare("UPDATE " . tbl('users') . " SET role = 'admin' WHERE user_id = ?");
@@ -107,9 +120,20 @@ require_once __DIR__ . '/../includes/header.php';
                 <input type="email" name="email" class="form-control" placeholder="staff@bhel.in">
             </div>
 
-            <div class="form-group">
-                <label>Department</label>
-                <input type="text" name="department" class="form-control" value="Operations" placeholder="Department">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Department</label>
+                    <input type="text" name="department" class="form-control" value="Operations" placeholder="Department">
+                </div>
+
+                <div class="form-group">
+                    <label>Employee Category *</label>
+                    <select name="employee_category" class="form-control" required>
+                        <option value="executive">Executive</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="workman" selected>Workman</option>
+                    </select>
+                </div>
             </div>
 
             <div class="grid-2">
@@ -145,17 +169,35 @@ require_once __DIR__ . '/../includes/header.php';
                     <tr>
                         <th>Staff No</th>
                         <th>Name</th>
-                        <th>Department</th>
+                        <th>Category</th>
                         <th>Role</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($users as $u): ?>
+                    <?php foreach ($users as $u): 
+                        $empCat = $u['employee_category'] ?? 'workman';
+                        $catBadge = 'badge-info';
+                        if ($empCat === 'executive') $catBadge = 'badge-warning';
+                        elseif ($empCat === 'supervisor') $catBadge = 'badge-accent';
+                        elseif ($empCat === 'workman') $catBadge = 'badge-success';
+                    ?>
                         <tr>
                             <td><code><?= sanitize($u['staff_no']) ?></code></td>
-                            <td><strong style="color: #FFF;"><?= sanitize($u['full_name']) ?></strong></td>
-                            <td style="font-size: 12px;"><?= sanitize($u['department']) ?></td>
+                            <td>
+                                <strong style="color: #FFF;"><?= sanitize($u['full_name']) ?></strong>
+                                <div style="font-size: 11px; color: var(--text-secondary);"><?= sanitize($u['department']) ?></div>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span class="badge <?= $catBadge ?>"><?= ucfirst($empCat) ?></span>
+                                    <select onchange="location.href='users.php?action=update_category&user_id=<?= $u['user_id'] ?>&category=' + this.value;" style="background: rgba(255,255,255,0.05); color: #FFF; border: 1px solid var(--border-light); border-radius: 4px; font-size: 10px; padding: 2px;">
+                                        <option value="executive" <?= $empCat === 'executive' ? 'selected' : '' ?>>Executive</option>
+                                        <option value="supervisor" <?= $empCat === 'supervisor' ? 'selected' : '' ?>>Supervisor</option>
+                                        <option value="workman" <?= $empCat === 'workman' ? 'selected' : '' ?>>Workman</option>
+                                    </select>
+                                </div>
+                            </td>
                             <td>
                                 <span class="badge <?= $u['role'] === 'admin' ? 'badge-warning' : 'badge-info' ?>">
                                     <?= strtoupper($u['role']) ?>

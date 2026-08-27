@@ -41,6 +41,7 @@ function login_user($staffNo, $password) {
         $_SESSION['staff_no'] = $user['staff_no'];
         $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['user_role'] = $user['role'];
+        $_SESSION['employee_category'] = $user['employee_category'] ?? 'workman';
         $_SESSION['department'] = $user['department'];
         $_SESSION['email'] = $user['email'];
 
@@ -53,7 +54,7 @@ function login_user($staffNo, $password) {
 /**
  * Register a new employee account
  */
-function register_user($staffNo, $fullName, $email, $department, $password) {
+function register_user($staffNo, $fullName, $email, $department, $password, $employeeCategory = 'workman') {
     $pdo = getDBConnection();
     if (!$pdo) {
         return ['success' => false, 'message' => 'Database connection error.'];
@@ -64,6 +65,11 @@ function register_user($staffNo, $fullName, $email, $department, $password) {
     $email = trim($email);
     $department = trim($department);
 
+    $allowedCategories = ['executive', 'supervisor', 'workman'];
+    if (!in_array($employeeCategory, $allowedCategories)) {
+        $employeeCategory = 'workman';
+    }
+
     // Check if staff number already exists
     $stmt = $pdo->prepare("SELECT user_id FROM " . tbl('users') . " WHERE staff_no = ?");
     $stmt->execute([$staffNo]);
@@ -73,12 +79,12 @@ function register_user($staffNo, $fullName, $email, $department, $password) {
 
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $insertStmt = $pdo->prepare("
-        INSERT INTO " . tbl('users') . " (staff_no, full_name, email, department, role, password) 
-        VALUES (?, ?, ?, ?, 'employee', ?)
+        INSERT INTO " . tbl('users') . " (staff_no, full_name, email, department, role, employee_category, password) 
+        VALUES (?, ?, ?, ?, 'employee', ?, ?)
     ");
 
     try {
-        $insertStmt->execute([$staffNo, $fullName, $email, $department, $passwordHash]);
+        $insertStmt->execute([$staffNo, $fullName, $email, $department, $employeeCategory, $passwordHash]);
         $newUserId = $pdo->lastInsertId();
 
         // Auto login
@@ -86,6 +92,7 @@ function register_user($staffNo, $fullName, $email, $department, $password) {
         $_SESSION['staff_no'] = $staffNo;
         $_SESSION['full_name'] = $fullName;
         $_SESSION['user_role'] = 'employee';
+        $_SESSION['employee_category'] = $employeeCategory;
         $_SESSION['department'] = $department;
         $_SESSION['email'] = $email;
 

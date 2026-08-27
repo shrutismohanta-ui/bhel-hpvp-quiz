@@ -20,6 +20,7 @@ CREATE TABLE `quiz_users` (
   `email` VARCHAR(100) DEFAULT NULL,
   `department` VARCHAR(100) NOT NULL DEFAULT 'Operations',
   `role` ENUM('admin', 'employee') NOT NULL DEFAULT 'employee',
+  `employee_category` ENUM('executive', 'supervisor', 'workman') NOT NULL DEFAULT 'workman',
   `password` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -33,6 +34,8 @@ CREATE TABLE `quiz_quizzes` (
   `description_en` TEXT DEFAULT NULL,
   `description_hi` TEXT DEFAULT NULL,
   `description_te` TEXT DEFAULT NULL,
+  `languages` VARCHAR(50) NOT NULL DEFAULT 'en',
+  `target_categories` VARCHAR(100) NOT NULL DEFAULT 'executive,supervisor,workman',
   `start_time` DATETIME NOT NULL,
   `end_time` DATETIME NOT NULL,
   `duration_minutes` INT NOT NULL DEFAULT 15,
@@ -106,20 +109,27 @@ CREATE TABLE `quiz_attempt_responses` (
 -- Seed Data: Sample Users (Password is 'bhelpassword')
 -- --------------------------------------------------------
 
-INSERT INTO `quiz_users` (`staff_no`, `full_name`, `email`, `department`, `role`, `password`) VALUES
-('ADMIN001', 'BHEL Vizag Administrator', 'admin.vizag@bhel.in', 'IT & Safety Admin', 'admin', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
-('EMP1001', 'Rajesh Kumar Verma', 'rajesh.k@bhel.in', 'Quality Assurance', 'employee', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
-('EMP1002', 'Srinivas Rao K', 'srinivas.r@bhel.in', 'Heavy Machining Shop', 'employee', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
-('EMP1003', 'Priya Sharma', 'priya.s@bhel.in', 'Safety & Environment', 'employee', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm');
+INSERT INTO `quiz_users` (`staff_no`, `full_name`, `email`, `department`, `role`, `employee_category`, `password`) VALUES
+('ADMIN001', 'BHEL Vizag Administrator', 'admin.vizag@bhel.in', 'IT & Safety Admin', 'admin', 'executive', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('EMP1001', 'Rajesh Kumar Verma', 'rajesh.k@bhel.in', 'Quality Assurance', 'employee', 'executive', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('EXEC2001', 'Dr. Vikramaditya Reddy', 'vikram.reddy@bhel.in', 'Design & Engineering', 'employee', 'executive', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('EXEC2002', 'Sunita Deshmukh', 'sunita.d@bhel.in', 'Commercial & Contracts', 'employee', 'executive', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('EMP1002', 'Srinivas Rao K', 'srinivas.r@bhel.in', 'Heavy Machining Shop', 'employee', 'supervisor', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('SUP3001', 'Venkatesh Rao M', 'venkatesh.m@bhel.in', 'Heavy Machining Shop', 'employee', 'supervisor', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('SUP3002', 'Amitabh Saxena', 'amitabh.s@bhel.in', 'Quality Control & Inspection', 'employee', 'supervisor', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('EMP1003', 'Priya Sharma', 'priya.s@bhel.in', 'Safety & Environment', 'employee', 'workman', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('WRK4001', 'Ramesh Kumar Yadav', 'ramesh.yadav@bhel.in', 'Welding & Fabrication Shop', 'employee', 'workman', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm'),
+('WRK4002', 'B. Appala Raju', 'appala.raju@bhel.in', 'Assembly & Fitting', 'employee', 'workman', '$2y$10$ISldjfyuBkHl4vja0IwINepl3xQFREOzJsOZAv5HGaetoqewqwikm');
 
 -- Note: The hash above will be properly updated by install.php using password_hash('bhel123', PASSWORD_DEFAULT).
 
+
 -- --------------------------------------------------------
--- Seed Data: Sample Quizzes & Trilingual Questions
+-- Seed Data: Sample Quizzes & Multilingual Questions
 -- --------------------------------------------------------
 
 INSERT INTO `quiz_quizzes` 
-(`quiz_id`, `title_en`, `title_hi`, `title_te`, `description_en`, `description_hi`, `description_te`, `start_time`, `end_time`, `duration_minutes`, `marks_per_question`, `negative_marks`, `pass_percentage`, `is_published`, `created_by`)
+(`quiz_id`, `title_en`, `title_hi`, `title_te`, `description_en`, `description_hi`, `description_te`, `languages`, `target_categories`, `start_time`, `end_time`, `duration_minutes`, `marks_per_question`, `negative_marks`, `pass_percentage`, `is_published`, `created_by`)
 VALUES 
 (1, 
 'BHEL-HPVP Safety & Quality Protocol Quiz 2026', 
@@ -128,6 +138,8 @@ VALUES
 'Mandatory safety, industrial hazards, ISO standards, and operational quality guidelines quiz for BHEL-HPVP Vizag employees.', 
 'बीएचईएल-एचपीवीपी विशाखापट्टनम कर्मचारियों के लिए अनिवार्य सुरक्षा, औद्योगिक खतरों, आईएसओ मानकों और परिचालन गुणवत्ता दिशानिर्देशों का क्विज़।', 
 'BHEL-HPVP విశాఖపట్నం ఉద్యోగుల కోసం నిర్బంధ భద్రత, పారిశ్రామిక ప్రమాదాలు, ISO ప్రమాణాలు మరియు కార్యాచరణ నాణ్యత మార్గదర్శకాల క్విజ్.', 
+'en,hi,te',
+'executive,supervisor,workman',
 DATE_SUB(NOW(), INTERVAL 1 DAY), 
 DATE_ADD(NOW(), INTERVAL 30 DAY), 
 15, 2.00, 0.50, 40.00, 1, 1),
@@ -139,9 +151,67 @@ DATE_ADD(NOW(), INTERVAL 30 DAY),
 'Assessment on shop floor emergency procedures, PPE protocols, and electrical safety standards at Heavy Power Equipment Plant Vizag.', 
 'हेवी पावर इक्विपमेंट प्लांट विशाखापट्टनम में शॉप फ्लोर आपातकालीन प्रक्रियाओं, पीपीई प्रोटोकॉल और विद्युत सुरक्षा मानकों पर मूल्यांकन।', 
 'హెవీ పవర్ ఎక్విప్‌మెంట్ ప్లాంట్ విశాఖపట్నంలో షాప్ ఫ్లోర్ ఎమర్జెన్సీ విధానాలు, పిపిఇ ప్రోటోకాల్‌లు మరియు ఎలక్ట్రికల్ భద్రతా ప్రమాణాలపై అంచనా.', 
+'en,hi,te',
+'supervisor,workman',
 DATE_SUB(NOW(), INTERVAL 1 DAY), 
 DATE_ADD(NOW(), INTERVAL 15 DAY), 
-20, 1.00, 0.25, 50.00, 1, 1);
+20, 1.00, 0.25, 50.00, 1, 1),
+
+(3,
+'Swachhata Pakhwada Cleanliness & Sustainability Quiz 2026',
+'स्वच्छता पखवाड़ा स्वच्छता एवं पर्यावरण संधारणीयता क्विज़ 2026',
+'స్వచ్ఛతా పఖ్వాడా పరిశుభ్రత మరియు పర్యావరణ సుస్థిరత క్విజ్ 2026',
+'Official BHEL Swachhata Pakhwada quiz focusing on waste segregation, single-use plastic reduction, industrial hygiene, 5S workplace cleanliness, and environmental protection.',
+'बीएचईएल स्वच्छता पखवाड़ा क्विज़ - अपशिष्ट पृथक्करण, एकल-उपयोग प्लास्टिक में कमी, औद्योगिक स्वच्छता, 5S कार्यस्थल स्वच्छता और पर्यावरण संरक्षण पर केंद्रित।',
+'BHEL స్వచ్ఛతా పఖ్వాడా క్విజ్ - వ్యర్థాల వేరుచేత, సింగిల్-यूटिस प्लास्टिक में कमी, औद्योगिक स्वच्छता, 5S कार्यस्थल स्वच्छता और पर्यावरण संरक्षण पर केंद्रित।',
+'en,hi,te',
+'executive,supervisor,workman',
+DATE_SUB(NOW(), INTERVAL 1 DAY),
+DATE_ADD(NOW(), INTERVAL 30 DAY),
+15, 2.00, 0.50, 40.00, 1, 1),
+
+(4,
+'BHEL Executive HSE Leadership & Environmental Compliance Quiz 2026',
+'',
+'',
+'Advanced Health, Safety & Environment (HSE) management quiz for BHEL Executives covering ISO 45001, ISO 14001, HAZOP, environmental regulations, statutory factory compliance, and corporate emergency management.',
+'',
+'',
+'en',
+'executive',
+DATE_SUB(NOW(), INTERVAL 1 DAY),
+DATE_ADD(NOW(), INTERVAL 30 DAY),
+20, 2.00, 0.50, 50.00, 1, 1),
+
+(5,
+'Hindi Diwas & Rajbhasha Knowledge Quiz 2026',
+'हिंदी दिवस एवं राजभाषा ज्ञान क्विज़ 2026',
+'',
+'Hindi Diwas Special Quiz for Executives and Supervisors covering official language policy, Article 343, Rajbhasha rules, and Hindi literature.',
+'बीएचईएल अधिकारियों एवं पर्यवेक्षकों के लिए हिंदी दिवस विशेष क्विज़ - राजभाषा नीति, अनुच्छेद 343, राजभाषा नियम 1976 और हिंदी साहित्य एवं संस्कृति पर आधारित।',
+'',
+'hi',
+'executive,supervisor',
+DATE_SUB(NOW(), INTERVAL 1 DAY),
+DATE_ADD(NOW(), INTERVAL 30 DAY),
+15, 2.00, 0.50, 40.00, 1, 1),
+
+(6,
+'Hindi Diwas Workman Rajbhasha & Workshop Knowledge Quiz 2026',
+'हिंदी दिवस वर्कमेन राजभाषा एवं कार्यशाला ज्ञान क्विज़ 2026',
+'',
+'Hindi Diwas Special Quiz exclusively for BHEL Workman category covering practical workplace Hindi, shop floor Rajbhasha terms, industrial safety, and general knowledge.',
+'बीएचईएल वर्कमेन (कर्मचारी) श्रेणी के लिए विशेष हिंदी दिवस क्विज़ - व्यावहारिक कार्यशाला हिंदी, शॉप फ्लोर राजभाषा शब्दावली, औद्योगिक सुरक्षा और सामान्य ज्ञान पर आधारित।',
+'',
+'hi',
+'workman',
+DATE_SUB(NOW(), INTERVAL 1 DAY),
+DATE_ADD(NOW(), INTERVAL 30 DAY),
+15, 2.00, 0.50, 40.00, 1, 1);
+
+
+
+
 
 -- Insert Questions for Quiz 1
 INSERT INTO `quiz_questions` 
