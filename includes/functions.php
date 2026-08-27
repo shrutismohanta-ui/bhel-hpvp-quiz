@@ -109,6 +109,54 @@ function get_quiz_status($startTime, $endTime, $isPublished = 1) {
 }
 
 /**
+ * Check if a user is excluded from taking a quiz based on Staff No or Department
+ * @param string $staffNo User's Staff No
+ * @param string $dept User's Department
+ * @param string $excludedStaffStr Comma/newline separated excluded staff numbers
+ * @param string $excludedDeptsStr Comma/newline separated excluded department names
+ * @return array ['is_excluded' => bool, 'reason' => string]
+ */
+function is_user_excluded_from_quiz($staffNo, $dept, $excludedStaffStr, $excludedDeptsStr) {
+    $staffNoClean = strtoupper(trim($staffNo ?? ''));
+    $deptClean = strtolower(trim($dept ?? ''));
+
+    // Check Staff No exclusion
+    if (!empty($excludedStaffStr)) {
+        $exStaffList = array_map(function($item) {
+            return strtoupper(trim($item));
+        }, preg_split('/[\r\n,]+/', $excludedStaffStr));
+        $exStaffList = array_values(array_filter($exStaffList));
+
+        if (in_array($staffNoClean, $exStaffList)) {
+            return [
+                'is_excluded' => true,
+                'reason' => "Staff No ({$staffNoClean}) is in the exclusion list for this quiz."
+            ];
+        }
+    }
+
+    // Check Department exclusion
+    if (!empty($excludedDeptsStr)) {
+        $exDeptList = array_map(function($item) {
+            return strtolower(trim($item));
+        }, preg_split('/[\r\n,]+/', $excludedDeptsStr));
+        $exDeptList = array_values(array_filter($exDeptList));
+
+        if (!empty($deptClean) && in_array($deptClean, $exDeptList)) {
+            return [
+                'is_excluded' => true,
+                'reason' => "Your Department ({$dept}) is excluded from participating in this quiz."
+            ];
+        }
+    }
+
+    return [
+        'is_excluded' => false,
+        'reason' => ''
+    ];
+}
+
+/**
  * Format datetime string into friendly display string
  */
 function format_datetime($datetimeStr) {

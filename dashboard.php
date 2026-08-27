@@ -150,6 +150,9 @@ require_once __DIR__ . '/includes/header.php';
     <?php else: ?>
         <div class="grid-2">
             <?php 
+            $userStaffNo = $_SESSION['staff_no'] ?? '';
+            $userDept = $_SESSION['department'] ?? '';
+
             foreach ($allQuizzes as $q):
                 $qStatus = get_quiz_status($q['start_time'], $q['end_time'], $q['is_published']);
                 $existingAttempt = $userAttemptsByQuiz[$q['quiz_id']] ?? null;
@@ -157,11 +160,19 @@ require_once __DIR__ . '/includes/header.php';
                 $qCats = explode(',', $q['target_categories'] ?? 'executive,supervisor,workman');
                 $primaryTitle = !empty($q['title_en']) ? $q['title_en'] : (!empty($q['title_hi']) ? $q['title_hi'] : $q['title_te']);
                 $primaryDesc = !empty($q['description_en']) ? $q['description_en'] : (!empty($q['description_hi']) ? $q['description_hi'] : $q['description_te']);
+
+                // Check exclusion rules (Admins are exempt)
+                $exCheck = is_admin() ? ['is_excluded' => false, 'reason' => ''] : is_user_excluded_from_quiz($userStaffNo, $userDept, $q['excluded_staff_nos'] ?? '', $q['excluded_departments'] ?? '');
             ?>
-                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--bhel-blue-accent);">
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid <?= $exCheck['is_excluded'] ? 'var(--status-danger)' : 'var(--bhel-blue-accent)' ?>;">
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                            <span class="badge <?= $qStatus['badge'] ?>"><?= $qStatus['label'] ?></span>
+                            <div>
+                                <span class="badge <?= $qStatus['badge'] ?>"><?= $qStatus['label'] ?></span>
+                                <?php if ($exCheck['is_excluded']): ?>
+                                    <span class="badge badge-danger" title="<?= sanitize($exCheck['reason']) ?>"><i class="fa-solid fa-user-slash"></i> Excluded</span>
+                                <?php endif; ?>
+                            </div>
                             <div style="display: flex; gap: 6px; align-items: center;">
                                 <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(0, 210, 255, 0.15); color: var(--bhel-blue-accent); border: 1px solid rgba(0, 210, 255, 0.3);">
                                     <i class="fa-solid fa-language"></i> <?= strtoupper(implode(', ', $qLangs)) ?>
@@ -199,7 +210,11 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
 
                 <div>
-                    <?php if ($existingAttempt && $existingAttempt['status'] === 'completed'): ?>
+                    <?php if ($exCheck['is_excluded']): ?>
+                        <button disabled class="btn btn-outline" style="width: 100%; opacity: 0.6; cursor: not-allowed; border-color: rgba(239, 68, 68, 0.4); color: #FCA5A5;" title="<?= sanitize($exCheck['reason']) ?>">
+                            <i class="fa-solid fa-user-slash"></i> Access Restricted (Excluded)
+                        </button>
+                    <?php elseif ($existingAttempt && $existingAttempt['status'] === 'completed'): ?>
                         <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--status-active); padding: 10px 14px; border-radius: 8px; margin-bottom: 10px;">
                             <span style="font-size: 13px; color: #6EE7B7;"><i class="fa-solid fa-check-circle"></i> Quiz Completed</span>
                             <span style="font-weight: 700; color: var(--bhel-gold);"><?= $existingAttempt['score_achieved'] ?> / <?= $existingAttempt['total_marks'] ?> Marks</span>

@@ -36,6 +36,8 @@ CREATE TABLE `quiz_quizzes` (
   `description_te` TEXT DEFAULT NULL,
   `languages` VARCHAR(50) NOT NULL DEFAULT 'en',
   `target_categories` VARCHAR(100) NOT NULL DEFAULT 'executive,supervisor,workman',
+  `excluded_staff_nos` TEXT DEFAULT NULL,
+  `excluded_departments` TEXT DEFAULT NULL,
   `start_time` DATETIME NOT NULL,
   `end_time` DATETIME NOT NULL,
   `duration_minutes` INT NOT NULL DEFAULT 15,

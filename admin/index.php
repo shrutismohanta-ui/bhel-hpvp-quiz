@@ -152,6 +152,11 @@ require_once __DIR__ . '/../includes/header.php';
                                     <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 193, 7, 0.15); color: var(--bhel-gold); border: 1px solid rgba(255, 193, 7, 0.3);">
                                         <i class="fa-solid fa-users"></i> <?= implode(', ', array_map('ucfirst', $qCats)) ?>
                                     </span>
+                                    <?php if (!empty($q['excluded_staff_nos']) || !empty($q['excluded_departments'])): ?>
+                                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3);" title="Exclusion rules active">
+                                            <i class="fa-solid fa-user-slash"></i> Exclusions Set
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td style="font-size: 12px;">

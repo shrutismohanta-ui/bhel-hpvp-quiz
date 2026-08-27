@@ -79,6 +79,18 @@ function getDBConnection() {
                 if ($colCat && $colCat->rowCount() === 0) {
                     $pdo->exec("ALTER TABLE " . tbl('quizzes') . " ADD COLUMN `target_categories` VARCHAR(100) NOT NULL DEFAULT 'executive,supervisor,workman' AFTER `languages`");
                 }
+
+                // Check quiz_quizzes for excluded_staff_nos
+                $colExStaff = $pdo->query("SHOW COLUMNS FROM " . tbl('quizzes') . " LIKE 'excluded_staff_nos'");
+                if ($colExStaff && $colExStaff->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE " . tbl('quizzes') . " ADD COLUMN `excluded_staff_nos` TEXT DEFAULT NULL AFTER `target_categories`");
+                }
+
+                // Check quiz_quizzes for excluded_departments
+                $colExDept = $pdo->query("SHOW COLUMNS FROM " . tbl('quizzes') . " LIKE 'excluded_departments'");
+                if ($colExDept && $colExDept->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE " . tbl('quizzes') . " ADD COLUMN `excluded_departments` TEXT DEFAULT NULL AFTER `excluded_staff_nos`");
+                }
             } catch (Exception $migErr) {
                 // Ignore migration error if tables do not exist yet
             }

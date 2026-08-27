@@ -26,6 +26,16 @@ if (!$quiz) {
     exit();
 }
 
+// Exclusion Rules Verification (Admins exempt)
+$userStaffNo = $_SESSION['staff_no'] ?? '';
+$userDept = $_SESSION['department'] ?? '';
+$exCheck = is_admin() ? ['is_excluded' => false, 'reason' => ''] : is_user_excluded_from_quiz($userStaffNo, $userDept, $quiz['excluded_staff_nos'] ?? '', $quiz['excluded_departments'] ?? '');
+
+if ($exCheck['is_excluded']) {
+    header('Location: dashboard.php?error=' . urlencode('Access Restricted: ' . $exCheck['reason']));
+    exit();
+}
+
 // Time Window Verification
 $now = new DateTime();
 $startTime = new DateTime($quiz['start_time']);
