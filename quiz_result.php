@@ -83,7 +83,7 @@ require_once __DIR__ . '/includes/header.php';
 <div class="page-header">
     <div class="page-title">
         <h2><i class="fa-solid fa-square-poll-vertical" style="color: var(--bhel-gold);"></i> Quiz Performance Scorecard</h2>
-        <p>Participant: <strong><?= sanitize($attempt['full_name']) ?></strong> (Staff No: <?= sanitize($attempt['staff_no']) ?>)</p>
+        <p>Participant: <strong><?= sanitize($attempt['full_name'] ?? $_SESSION['full_name']) ?></strong> (Staff No: <?= sanitize($attempt['staff_no'] ?? $_SESSION['staff_no']) ?>)</p>
     </div>
     <div>
         <a href="dashboard.php" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Return to Dashboard</a>
